@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UrbanPulse.Consumer/UrbanPulse.Consumer.csproj" />
+    <Project Path="src/UrbanPulse.Producer/UrbanPulse.Producer.csproj" />
+    <Project Path="src/UrbanPulse.Shared/UrbanPulse.Shared.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,36 @@
+## .NET Core / Visual Studio
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.doccache
+
+## Docker
+# Ignora pastas de dados que o Docker pode criar se você mapeou volumes locais
+.docker/
+docker-compose.override.yml
+
+## User-specific files
+.idea/
+.DS_Store
+*.suo
+*.user
+*.userosscache
+*.sln.doccache
+*.sublime-project
+*.sublime-workspace
+
+## Arquivos de log e temporários
+*.log
+TestResults/
+
+## Publicação
+publish/
+
+## Pasta de pacotes do NuGet
+*.nupkg
+# A pasta packages geralmente é ignorada pois o dotnet restore baixa tudo de novo
+**/packages/*
+!**/packages/build/
