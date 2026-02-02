@@ -9,5 +9,8 @@
         public double Longitude { get; set; }
         public int Severity { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public GeoLocation Location => new GeoLocation(Latitude, Longitude);
     }
+
+    public record GeoLocation(double Lat, double Lon);
 }

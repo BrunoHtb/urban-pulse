@@ -7,12 +7,35 @@ using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 using UrbanPulse.Shared;
+using Elastic.Clients.Elasticsearch;
 
+
+/*  ELASTCHSEARCH   */
+var elasticSettings = new ElasticsearchClientSettings(new Uri("http://localhost:9200"))
+    .DefaultIndex("urban-events");
+
+var elasticClient = new ElasticsearchClient(elasticSettings);
+var existsResponse = await elasticClient.Indices.ExistsAsync("urban-events");
+
+if (!existsResponse.Exists)
+{
+    await elasticClient.Indices.CreateAsync("urban-events", c => c
+        .Mappings(m => m
+            .Properties<UrbanEvent>(p => p
+                .GeoPoint(n => n.Location)
+            )
+        )
+    );
+    Console.WriteLine("[Elastic] Índice 'urban-events' criado com Geo-Mapping.");
+}
+
+/*  MONGODB */
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 var mongoClient = new MongoClient("mongodb://localhost:27017");
 var database = mongoClient.GetDatabase("urbanpulseDB");
-var collection = database.GetCollection<UrbanEvent>("Events");    
+var collection = database.GetCollection<UrbanEvent>("Events");
 
+/* RABBITMQ */
 const string Host = "localhost";
 const string User = "urbanpulse";
 const string Password = "urbanpulse";
@@ -49,11 +72,18 @@ consumer.ReceivedAsync += async (sender, ea) =>
         
         if (urbanEvent != null)
         {
-            Console.WriteLine($"[Consumer] Gravando no Mongo: {urbanEvent.Description}");
-
             await collection.InsertOneAsync(urbanEvent);
+            Console.WriteLine($"[Mongo] Salvo: {urbanEvent.Id}");
 
-            Console.WriteLine($"[Consumer] Sucesso! ID: {urbanEvent.Id}");
+            var elasticResponse = await elasticClient.IndexAsync(urbanEvent);
+            if(elasticResponse.IsSuccess())
+            {
+                Console.WriteLine("[Elastic] Indexado com sucesso!");
+            }
+            else
+            {
+                Console.WriteLine($"[Elastic Erro] {elasticResponse.DebugInformation}");
+            }
         }
     }
     catch (Exception ex)
