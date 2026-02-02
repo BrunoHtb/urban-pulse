@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.19.14" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
     <PackageReference Include="MongoDB.Driver" Version="3.6.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
   </ItemGroup>

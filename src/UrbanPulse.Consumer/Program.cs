@@ -8,7 +8,14 @@ using System.Text;
 using System.Text.Json;
 using UrbanPulse.Shared;
 using Elastic.Clients.Elasticsearch;
+using Microsoft.Extensions.Configuration;
 
+var config = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json")
+    .Build();
+
+string rabbitHost = config["RabbitMQ:Host"] ?? "localhost";
 
 /*  ELASTCHSEARCH   */
 var elasticSettings = new ElasticsearchClientSettings(new Uri("http://localhost:9200"))
@@ -36,22 +43,17 @@ var database = mongoClient.GetDatabase("urbanpulseDB");
 var collection = database.GetCollection<UrbanEvent>("Events");
 
 /* RABBITMQ */
-const string Host = "localhost";
-const string User = "urbanpulse";
-const string Password = "urbanpulse";
-const string QueueName = "urbanpulse.events";
-
 var factory = new ConnectionFactory()
 {
-    HostName = Host,
-    UserName = User,
-    Password = Password
+    HostName = rabbitHost,
+    UserName = config["RabbitMQ:User"],
+    Password = config["RabbitMQ:Password"]
 };
 
 using var connection = await factory.CreateConnectionAsync();
 using var channel = await connection.CreateChannelAsync();
 
-await channel.QueueDeclareAsync(queue: QueueName,
+await channel.QueueDeclareAsync(queue: "urbanpulse.events",
                      durable: true,
                      exclusive: false,
                      autoDelete: false,
@@ -94,7 +96,7 @@ consumer.ReceivedAsync += async (sender, ea) =>
 };
 
 await channel.BasicConsumeAsync(
-    queue: QueueName,
+    queue: "urbanpulse.events",
     autoAck: false,
     consumer: consumer);
 

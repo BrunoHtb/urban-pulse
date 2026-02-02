@@ -34,3 +34,5 @@ publish/
 # A pasta packages geralmente é ignorada pois o dotnet restore baixa tudo de novo
 **/packages/*
 !**/packages/build/
+
+appsettings.json
