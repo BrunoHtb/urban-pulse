@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <File Path="src/UrbanPulse.Producer/appsettings.json" />
+    <Project Path="src/UrbanPulse.API/UrbanPulse.API.csproj" />
     <Project Path="src/UrbanPulse.Consumer/UrbanPulse.Consumer.csproj" />
     <Project Path="src/UrbanPulse.Producer/UrbanPulse.Producer.csproj" />
     <Project Path="src/UrbanPulse.Shared/UrbanPulse.Shared.csproj" />
