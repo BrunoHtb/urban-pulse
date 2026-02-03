@@ -15,18 +15,31 @@ var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
+/*  CONFIG RABBITMQ */
 string rabbitHost = config["RabbitMQ:Host"] ?? "localhost";
+string rabbitUser = config["RabbitMQ:User"] ?? "guest";
+string rabbitPassword = config["RabbitMQ:Password"] ?? "guest";
+string rabbitQueue = config["RabbitMQ:Queue"] ?? "urbanpulse.events";
+
+/*  CONFIG ELASTICSEARCH    */
+string elasticsearchHost = config["Elasticsearch:Host"] ?? "http://localhost:9200";
+string elasticsearchIndice = config["Elasticsearch:Indice"] ?? "urban-events";
+
+/*  CONFIG MONGODB  */
+string mongoHost = config["MongoDB:Host"] ?? "mongodb://localhost:27017";
+string mongoDatabase = config["MongoDB:Database"] ?? "urbanpulseDB";
+string mongoCollection = config["MongoDB:Collection"] ?? "Events";
 
 /*  ELASTCHSEARCH   */
-var elasticSettings = new ElasticsearchClientSettings(new Uri("http://localhost:9200"))
-    .DefaultIndex("urban-events");
+var elasticSettings = new ElasticsearchClientSettings(new Uri(elasticsearchHost))
+    .DefaultIndex(elasticsearchIndice);
 
 var elasticClient = new ElasticsearchClient(elasticSettings);
-var existsResponse = await elasticClient.Indices.ExistsAsync("urban-events");
+var existsResponse = await elasticClient.Indices.ExistsAsync(elasticsearchIndice);
 
 if (!existsResponse.Exists)
 {
-    await elasticClient.Indices.CreateAsync("urban-events", c => c
+    await elasticClient.Indices.CreateAsync(elasticsearchIndice, c => c
         .Mappings(m => m
             .Properties<UrbanEvent>(p => p
                 .GeoPoint(n => n.Location)
@@ -38,22 +51,22 @@ if (!existsResponse.Exists)
 
 /*  MONGODB */
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-var mongoClient = new MongoClient("mongodb://localhost:27017");
-var database = mongoClient.GetDatabase("urbanpulseDB");
-var collection = database.GetCollection<UrbanEvent>("Events");
+var mongoClient = new MongoClient(mongoHost);
+var database = mongoClient.GetDatabase(mongoDatabase);
+var collection = database.GetCollection<UrbanEvent>(mongoCollection);
 
 /* RABBITMQ */
 var factory = new ConnectionFactory()
 {
     HostName = rabbitHost,
-    UserName = config["RabbitMQ:User"],
-    Password = config["RabbitMQ:Password"]
+    UserName = rabbitUser,
+    Password = rabbitPassword
 };
 
 using var connection = await factory.CreateConnectionAsync();
 using var channel = await connection.CreateChannelAsync();
 
-await channel.QueueDeclareAsync(queue: "urbanpulse.events",
+await channel.QueueDeclareAsync(queue: rabbitQueue,
                      durable: true,
                      exclusive: false,
                      autoDelete: false,
@@ -74,9 +87,11 @@ consumer.ReceivedAsync += async (sender, ea) =>
         
         if (urbanEvent != null)
         {
+            // Salva no MongoDB
             await collection.InsertOneAsync(urbanEvent);
             Console.WriteLine($"[Mongo] Salvo: {urbanEvent.Id}");
 
+            // Salva no Elasticsearch
             var elasticResponse = await elasticClient.IndexAsync(urbanEvent);
             if(elasticResponse.IsSuccess())
             {
@@ -96,7 +111,7 @@ consumer.ReceivedAsync += async (sender, ea) =>
 };
 
 await channel.BasicConsumeAsync(
-    queue: "urbanpulse.events",
+    queue: rabbitQueue,
     autoAck: false,
     consumer: consumer);
 

@@ -7,21 +7,26 @@ using Microsoft.Extensions.Configuration;
 using UrbanPulse.Shared;
 using UrbanPulse.Producer.Models;
 
-// JSON
 var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json")
     .Build();
 
+/*  CONFIG TOMTOM */
 string apiKey = config["TomTom:ApiKey"] ?? "";
+
+/*  CONFIG RABBITMQ */
 string rabbitHost = config["RabbitMQ:Host"] ?? "localhost";
+string rabbitUser = config["RabbitMQ:User"] ?? "guest";
+string rabbitPassword = config["RabbitMQ:Password"] ?? "guest";
+string rabbitQueue = config["RabbitMQ:Queue"] ?? "urbanpulse.events";
 
 /* RABBITMQ */
 var factory = new ConnectionFactory()
 {
     HostName = rabbitHost,
-    UserName = config["RabbitMQ:User"],
-    Password = config["RabbitMQ:Password"]
+    UserName = rabbitUser,
+    Password = rabbitPassword
 };
 
 using var connection = await factory.CreateConnectionAsync();
@@ -61,7 +66,7 @@ while (true)
 
                 var json = JsonSerializer.Serialize(urbanEvent);
                 var body = Encoding.UTF8.GetBytes(json);
-                await channel.BasicPublishAsync(string.Empty, "urbanpulse.events", false, new BasicProperties { Persistent = true }, body);
+                await channel.BasicPublishAsync(string.Empty, rabbitQueue, false, new BasicProperties { Persistent = true }, body);
 
                 Console.WriteLine($"[Sent] {p.Nome}: {root.FlowData.CurrentSpeed}km/h (Fluxo Livre: {root.FlowData.FreeFlowSpeed}km/h)");
             }
