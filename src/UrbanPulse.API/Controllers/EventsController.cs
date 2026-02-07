@@ -28,6 +28,51 @@ namespace UrbanPulse.API.Controllers
             return response.IsSuccess() ? Ok(response.Documents) : BadRequest(response.DebugInformation);
         }
 
+        [HttpGet("proximity")]
+        public async Task<IActionResult> GetByProximity(double lat, double lon, double radiusKm = 5)
+        {
+            var response = await _elasticClient.SearchAsync<UrbanEvent>(
+                new SearchRequest("urban-events")
+                {
+                    Size = 50,
+                    Query = new Query
+                    {
+                        GeoDistance = new GeoDistanceQuery
+                        {
+                            Field = "location",
+                            Distance = $"{radiusKm}km",
+                            Location = new Elastic.Clients.Elasticsearch.LatLonGeoLocation
+                            {
+                                Lat = lat,
+                                Lon = lon
+                            }
+                        }
+                    },
+                    Sort = new List<SortOptions>
+                    {
+                        new SortOptions
+                        {
+                            Field = new FieldSort
+                            {
+                                Field = "timestamp",
+                                Order = SortOrder.Desc
+                            }
+                        }
+                    }
+                }
+            );
+
+            if (!response.IsValidResponse)
+                return BadRequest(response.DebugInformation);
+
+            return Ok(new
+            {
+                Total = response.Documents.Count,
+                Radius = $"{radiusKm}km",
+                Events = response.Documents
+            });
+        }
+
         [HttpGet("stats")]
         public async Task<IActionResult> GetNeighborhoodStats()
         {
